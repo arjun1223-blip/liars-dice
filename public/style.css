@@ -454,10 +454,21 @@ input:focus, select:focus { outline: 2px solid var(--gold); outline-offset: 1px;
 
 /* ---------- responsive ---------- */
 @media (max-width: 960px) {
-  .game-body { grid-template-columns: 1fr; grid-template-rows: auto 220px; }
-  #game { height: auto; min-height: 100vh; }
-  .side { border-left: 0; border-top: 2px solid var(--brass); }
-  .main { overflow: visible; }
+  /* Tablet and phone: the game fills the screen, and the log + chat slide up from the bottom. */
+  #game { height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; }
+  .game-body { grid-template-columns: 1fr; grid-template-rows: 1fr; }
+  .main { overflow: hidden; }
+  .table-wrap { min-height: 0; }
+  .log-btn { display: inline-flex; }
+  .side {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; height: min(62vh, 520px);
+    border-left: 0; border-top: 2px solid var(--brass); border-radius: 18px 18px 0 0;
+    background: linear-gradient(#2c1c0e, #1a1009); box-shadow: 0 -12px 30px #000c;
+    transform: translateY(105%); transition: transform .28s cubic-bezier(.3, .7, .3, 1);
+  }
+  #game.log-open .side { transform: none; }
+  #game.log-open .drawer-backdrop { display: block; }
+  .drawer-close { display: block; }
 }
 @media (max-width: 720px) {
   .home-grid, .lobby-body, .mode-grid { grid-template-columns: 1fr; }
@@ -495,10 +506,125 @@ body { -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%;
 .side { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
 .table-wrap, .hand-panel, .seat, .bubble, .btn, .faces, .stepper { -webkit-user-select: none; user-select: none; touch-action: manipulation; }
 input { font-size: 16px; } /* iOS zooms into inputs smaller than 16px */
-@media (max-width: 560px) {
-  .center { width: 38%; }
-  .center .status { font-size: .8rem; line-height: 1.25; }
+
+
+/* ---------- log + chat drawer (tablet and phone) ---------- */
+.log-btn { display: none; position: relative; }
+.log-btn .badge {
+  position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: 99px; background: var(--red); color: #fff; font: 700 .7rem/18px Inter, sans-serif; text-align: center;
+}
+.side-head { display: flex; align-items: center; justify-content: space-between; }
+.side-head h3 { margin: 0 0 8px; }
+.drawer-close { display: none; position: static; padding: 0 4px; font-size: 1.9rem; line-height: 1; }
+.drawer-backdrop { display: none; position: fixed; inset: 0; z-index: 55; background: #0009; }
+
+/* ---------- phone layout ---------- */
+.seat-bid {
+  display: flex; align-items: center; gap: 3px; margin-top: 1px;
+  background: var(--parch); color: var(--ink); font-weight: 800; font-size: .72rem;
+  padding: 1px 6px; border-radius: 8px; border: 1px solid #a07c45; animation: pop .3s ease-out;
+}
+.seat-bid .die { --s: 13px; }
+.seat-bid.latest { background: linear-gradient(#ffe39a, #f0c060); border-color: #fff1c4; box-shadow: 0 0 10px #ffd67a99; }
+.reveal-actions { display: flex; flex-direction: column; align-items: stretch; gap: 6px; width: 100%; text-align: center; }
+.reveal-actions .btn { min-height: 48px; font-family: var(--display); font-size: 1.35rem; font-weight: 400; }
+
+@media (max-width: 720px), (max-height: 520px) {
+  .topbar { gap: 6px 8px; padding-bottom: 6px; }
+  .tb-left { font-size: 1.1rem; }
+  .tb-right { gap: 6px; }
+  .tb-right .btn.sm { padding: 6px 10px; min-height: 36px; }
+  .chip { font-size: .72rem; padding: 2px 8px; }
+  .main { padding: 6px 8px 0; gap: 6px; }
+  .table-wrap { min-height: 0; }
+
+  /* Table: smaller seats, the hidden dice become just a count, last bid sits on the plaque. */
+  .rim { inset: 40px 2%; }
+  .seat { width: 82px; }
+  .seat .av { --a: 40px; }
+  .seat .av-wrap { margin-bottom: -10px; }
+  .plaque { padding: 12px 4px 5px; gap: 2px; border-radius: 10px; }
+  .seat .nm { font-size: .82rem; }
+  .seat .dice.concealed { display: none; }
+  .seat .dice { min-height: 0; gap: 2px; }
+  .seat .die { --s: 12px; }
+  .seat .count { font-size: .66rem; }
+  .seat .lose { font-size: .7rem; padding: 1px 6px; top: -2px; right: -4px; }
+  .center { width: calc(100% - 184px); max-width: 240px; }
+  .center::before { inset: -18px -16px; }
+  .center .lbl { font-size: .66rem; }
+  .bigbid { font-size: 2.1rem; gap: 6px; }
+  .bigbid .die { --s: 32px; }
+  .center .by { font-size: .78rem; }
+  .center .status { font-size: .82rem; line-height: 1.25; }
+  .center .status.you { font-size: 1.15rem; }
+  .palafico { font-size: .72rem; padding: 4px 7px; margin-bottom: 6px; }
+  .stamp { font-size: 1.7rem; border-width: 3px; padding: 3px 12px 0; }
+  .result { font-size: .8rem; margin-top: 6px; }
+  .pile-die { --s: 14px; left: -7px; top: -7px; }
+
+  /* Bottom panel: your dice, then numbers, then quantity + big Bid / Liar buttons in thumb reach. */
+  .hand-panel {
+    grid-template-columns: 1fr; gap: 8px; border-radius: 16px 16px 0 0; border-bottom: 0;
+    padding: 10px 12px max(10px, env(safe-area-inset-bottom));
+  }
+  .hand { display: flex; align-items: center; gap: 10px; }
+  .hand .lbl { margin: 0; font-size: 1rem; white-space: nowrap; }
+  .hand .dice { gap: 6px; flex-wrap: nowrap; }
+  .hand .die { --s: 34px; }
+  .controls { display: grid; grid-template-columns: auto 1fr 1fr; grid-template-areas: "faces faces faces" "step bid liar" "hint hint hint"; gap: 8px; }
+  .controls:has(.reveal-actions) { display: block; }
+  .bidder, .actions { display: contents; }
+  .times { display: none; }
+  .faces { grid-area: faces; justify-content: space-between; gap: 2px; }
+  .faces button { width: 46px; height: 46px; padding: 0; display: grid; place-items: center; }
+  .faces button .die { --s: 32px; }
+  .stepper { grid-area: step; }
+  .stepper button { width: 40px; height: 40px; }
+  .stepper .q { min-width: 30px; font-size: 1.7rem; }
+  .actions .btn { min-width: 0; min-height: 48px; font-size: 1.45rem; padding: 4px 8px; }
+  .actions [data-act="bid"] { grid-area: bid; }
+  .actions [data-act="liar"] { grid-area: liar; }
+  .hint { grid-area: hint; text-align: center; font-size: .76rem; min-height: 1.1em; }
+}
+/* Short landscape phones: keep the hand and controls side by side so the table keeps its height. */
+@media (max-height: 520px) and (min-width: 600px) {
+  .hand-panel { grid-template-columns: auto 1fr; padding-top: 8px; }
+  .hand { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .topbar { flex-wrap: nowrap; }
+  .tb-mid { order: 0; width: auto; }
+}
+@media (max-width: 960px) {
+  .log-btn { display: inline-flex; }
+  .drawer-close { display: block; }
+}
+.drawer-tools { display: none; align-items: center; justify-content: space-between; gap: 10px; padding: 0 0 10px; margin-bottom: 8px; border-bottom: 1px solid #ffffff14; }
+@media (max-width: 960px) { .drawer-tools { display: flex; } }
+@media (max-width: 720px), (max-height: 520px) {
+  .tb-right [data-rules] { display: none; }
+  .topbar { flex-wrap: wrap; }
+  .tb-left { flex: 1; min-width: 0; }
+}
+/* Phone held sideways: one compact control row so the table keeps most of the height. */
+@media (max-height: 520px) and (min-width: 600px) {
+  .topbar { padding-top: max(4px, env(safe-area-inset-top)); padding-bottom: 4px; }
+  .main { padding-top: 4px; gap: 4px; }
+  .rim { inset: 22px 9%; }
+  .seat .av { --a: 34px; }
+  .center { top: 57%; }
+  .bigbid { font-size: 1.7rem; }
+  .bigbid .die { --s: 26px; }
   .center .status.you { font-size: 1.05rem; }
-  .center .by, .result { font-size: .78rem; }
-  .palafico { font-size: .7rem; padding: 5px 7px; }
+  .hand-panel { grid-template-columns: auto 1fr; gap: 12px; padding: 6px 10px max(6px, env(safe-area-inset-bottom)); }
+  .hand .lbl { font-size: .85rem; }
+  .hand .dice { gap: 4px; }
+  .hand .die { --s: 26px; }
+  .controls { grid-template-columns: auto auto 1fr 1fr; grid-template-areas: "faces step bid liar" "hint hint hint hint"; gap: 2px 8px; align-items: center; }
+  .faces { gap: 0; }
+  .faces button { width: 38px; height: 40px; }
+  .faces button .die { --s: 27px; }
+  .stepper button { width: 34px; height: 36px; }
+  .actions .btn { min-height: 40px; font-size: 1.2rem; }
+  .reveal-actions .btn { min-height: 40px; }
 }

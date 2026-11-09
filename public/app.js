@@ -226,6 +226,16 @@
   }
   const later = (ms, fn) => setTimeout(() => { fn(); rerender(); }, ms);
 
+  function yourTurnAlert(ms) {
+    setTimeout(() => {
+      S.bell();
+      try {
+        const tapped = !navigator.userActivation || navigator.userActivation.hasBeenActive;
+        if (navigator.vibrate && tapped && !S.muted) navigator.vibrate([40, 60, 40]); // Android only
+      } catch (e) { /* not supported */ }
+    }, ms);
+  }
+
   function processEvents(g, myIdx) {
     const key = gameKey(g);
     const prev = ui.prev && ui.prev.key === key ? ui.prev : null;
@@ -233,7 +243,7 @@
     ui.prev = cur;
     if (!prev) {
       ui.fx = {}; ui.pilePending = 0; ui.overShown = null;
-      if (g.phase === 'bidding') { S.roundStart(); if (g.turn === myIdx) setTimeout(() => S.bell(), 1000); }
+      if (g.phase === 'bidding') { S.roundStart(); if (g.turn === myIdx) yourTurnAlert(1000); }
       return;
     }
     const newRound = g.round !== prev.round && g.phase === 'bidding';
@@ -260,7 +270,7 @@
       }
     }
     if (g.phase === 'bidding' && (g.turn !== prev.turn || newRound)) {
-      if (g.turn === myIdx) setTimeout(() => S.bell(), newRound ? 1000 : 150);
+      if (g.turn === myIdx) yourTurnAlert(newRound ? 1000 : 150);
     }
   }
 
@@ -297,7 +307,10 @@
     $('#waitHost').hidden = host;
   }
 
-  function seatBox(W) { return W < 560 ? { w: 100, h: 112 } : { w: 140, h: 138 }; }
+  // Phone layout: compact seats, your own seat lives in the bottom panel, controls in thumb reach.
+  const compactMQ = matchMedia('(max-width: 720px), (max-height: 520px)');
+  const isCompact = () => compactMQ.matches;
+  function seatBox(W) { return isCompact() ? { w: 82, h: 96 } : W < 560 ? { w: 100, h: 112 } : { w: 140, h: 138 }; }
 
   function renderGame() {
     const g = view.game, room = view.room;
@@ -317,7 +330,7 @@
       <span class="chip">Round <b>${g.round}</b></span>
       <span class="chip"><b>${g.totalDice}</b> dice in play</span>
       ${g.phase === 'bidding' && g.palafico ? '<span class="chip pal">PALAFICO: ones not wild</span>' : '<span class="chip">Ones wild</span>'}`);
-    $('#oddsToggle').checked = ui.showOdds;
+    $('#oddsToggle').checked = ui.showOdds; $('#oddsToggle2').checked = ui.showOdds;
     syncSoundButtons();
 
     const lastBid = {};
@@ -327,9 +340,11 @@
     const wrap = $('#tableWrap');
     const W = wrap.clientWidth, H = wrap.clientHeight;
     const box = seatBox(W);
+    const compact = isCompact();
     const base = myIdx >= 0 ? myIdx : 0;
     let seatsHTML = '', bubblesHTML = '';
     g.players.forEach((p, i) => {
+      if (compact && p.id === view.you) return; // shown in the bottom panel instead
       const rel = (i - base + n) % n;
       const a = (90 + rel * (360 / n)) * Math.PI / 180;
       const x = W / 2 + (W / 2 - box.w / 2 - 6) * Math.cos(a);
@@ -337,7 +352,7 @@
       const roomP = room && room.players.find((q) => q.id === p.id);
       const away = roomP ? !roomP.connected && !roomP.isBot : false;
       const isLoser = revealing && res.losers.includes(i);
-      let dice;
+      let dice, concealed = false;
       if (revealing) {
         const hand = res.hands[i];
         dice = hand.map((d, k) => die(d, (E.matches(d, res.bid.face, res.wild) ? 'hit' : 'dim') + (isLoser && k === hand.length - 1 ? ' gone' : ''))).join('');
@@ -345,6 +360,7 @@
         dice = p.dice.map((d) => die(d)).join('');
       } else {
         dice = Array.from({ length: p.diceCount }, () => die(0)).join('');
+        concealed = true;
       }
       const out = p.diceCount === 0 && !(revealing && res.hands[i].length);
       const badge = isLoser ? '<span class="lose">−1</span>' : g.phase === 'gameover' && g.winner === i ? '<span class="lose good">WINNER</span>' : '';
@@ -355,18 +371,21 @@
       const mood = fx && fx.mood ? fx.mood : out ? 'frown' : 'neutral';
       const cls = ['seat', p.id === view.you ? 'me' : '', g.phase === 'bidding' && g.turn === i ? 'turn' : '', out ? 'out' : ''].join(' ');
       const label = isCrew(p) ? C.CREW[p.name].title : p.id === view.you ? 'That be you' : away ? 'Away (bot playing)' : 'Pirate';
+      const b = lastBid[i];
+      const seatBid = compact && b && g.phase === 'bidding'
+        ? `<div class="seat-bid ${g.currentBid && g.currentBid.player === i ? 'latest' : ''}">${b.qty} × ${die(b.face)}</div>` : '';
       seatsHTML += `
         <div class="${cls}" data-seat="${i}" style="left:${x}px;top:${y}px">
           ${badge}
           <div class="av-wrap ${anim}" style="${delay}">${avatar(p, '', mood)}</div>
           <div class="plaque">
             <div class="nm" title="${esc(label)}">${esc(p.name)}${room && room.hostId === p.id ? ' <span class="crown">♛</span>' : ''}</div>
-            <div class="dice">${dice || '<span class="muted small">out</span>'}</div>
+            <div class="dice ${concealed ? 'concealed' : ''}">${dice || '<span class="muted small">out</span>'}</div>
             <div class="count">${p.diceCount} ${p.diceCount === 1 ? 'die' : 'dice'}${away ? ' · away' : ''}</div>
+            ${seatBid}
           </div>
         </div>`;
-      const b = lastBid[i];
-      if (b && g.phase === 'bidding') {
+      if (b && g.phase === 'bidding' && !compact) {
         const bx = W / 2 + (x - W / 2) * 0.56, by = H / 2 + (y - H / 2) * 0.55;
         const latest = g.currentBid && g.currentBid.player === i;
         bubblesHTML += `<div class="bubble ${latest ? 'latest' : ''}" style="left:${bx}px;top:${by}px">${b.qty} × ${die(b.face)}</div>`;
@@ -378,7 +397,7 @@
     renderCenter(g, room, myIdx, me, isHost);
     renderPile(g);
     renderHand(g, me, myIdx);
-    renderControls(g, me, myIdx);
+    renderControls(g, me, myIdx, room, isHost);
     renderFeed(g, room);
 
     // Lost-die animation: fly the die from the loser's seat to the pile in the middle.
@@ -399,10 +418,13 @@
       const yourTurn = g.turn === myIdx;
       const bid = g.currentBid;
       const ones = g.players.filter((p) => p.diceCount === 1);
-      const pal = g.palafico
+      const compact = isCompact();
+      const pal = g.palafico && compact
+        ? `<div class="palafico"><b>Palafico!</b> Ones not wild${bid ? `, ${bid.face}s only` : ''}.</div>`
+        : g.palafico
         ? `<div class="palafico"><b>Palafico round!</b> ${esc(g.players[g.palaficoPlayer].name)} opens${ones.length > 1 ? ` (one die: ${ones.map((p) => esc(p.name)).join(', ')})` : ''}.<br>Ones are not wild, and the number can't change${bid ? ` from ${bid.face}s` : ' after the opening bid'}.</div>`
         : '';
-      const first = g.round === 1 && !bid && g.firstRoll
+      const first = g.round === 1 && !bid && g.firstRoll && !compact
         ? `<div class="by">${esc(g.players[g.firstRoll.winner].name)} rolled a ${g.firstRoll.roll}, the highest, and goes first.</div>`
         : '';
       setHTML(center, pal + first + (bid
@@ -423,6 +445,28 @@
       : `The bid was good. <b>${esc(caller)}</b> loses a die.`;
     if (res.eliminated.length) outcome += `<br><b>${esc(loserP.name)}</b> is out of dice!`;
     else if (res.palaficoNext && g.phase !== 'gameover') outcome += `<br>Next round is <b>palafico</b>: ${esc(g.players[res.nextStarter].name)} opens.`;
+    const footer = isCompact() ? '' : revealFooter(g, room, me, isHost);
+    if (isCompact()) {
+      const loserName = esc(loserP.name);
+      let note = res.eliminated.length ? `<br><b>${loserName}</b> is out!`
+        : res.palaficoNext && g.phase !== 'gameover' ? `<br>Palafico next: ${esc(g.players[res.nextStarter].name)} opens.` : '';
+      setHTML(center, `
+        <div class="stamp">LIAR!</div>
+        <div class="result">${esc(caller)} called ${esc(bidder)}'s <b>${res.bid.qty} × ${res.bid.face}s</b>. There ${res.actual === 1 ? 'was' : 'were'} <b>${res.actual}</b>.<br>
+          ${res.success ? 'Caught bluffing!' : 'The bid was good.'} <b>${loserName}</b> −1${note}</div>`);
+      tickCountdowns();
+      return;
+    }
+    setHTML(center, `
+      <div class="stamp">LIAR!</div>
+      <div class="result">${esc(caller)} challenged ${esc(bidder)}'s <b>${res.bid.qty} × ${res.bid.face}s</b>.<br>
+        There ${res.actual === 1 ? 'was' : 'were'} <b>${res.actual}</b> ${faceWord}${res.wild && res.bid.face !== 1 ? ' (counting 1s)' : ''}.<br>${outcome}</div>
+      ${footer}`);
+    tickCountdowns();
+  }
+
+  // Buttons shown after a "Liar!" call: next round, results, or the auto-advance countdown.
+  function revealFooter(g, room, me, isHost) {
     const meOut = me && me.diceCount === 0;
     let footer = '';
     if (g.phase === 'gameover' || (mode === 'solo' && meOut)) {
@@ -431,12 +475,7 @@
       footer = isHost ? '<button class="btn primary" id="nextBtn">Next round</button>' : '';
       if (mode === 'online' && room.revealEndsAt) footer += `<div class="countdown" data-ends="${room.revealEndsAt}"></div>`;
     }
-    setHTML(center, `
-      <div class="stamp">LIAR!</div>
-      <div class="result">${esc(caller)} challenged ${esc(bidder)}'s <b>${res.bid.qty} × ${res.bid.face}s</b>.<br>
-        There ${res.actual === 1 ? 'was' : 'were'} <b>${res.actual}</b> ${faceWord}${res.wild && res.bid.face !== 1 ? ' (counting 1s)' : ''}.<br>${outcome}</div>
-      ${footer}`);
-    tickCountdowns();
+    return footer;
   }
 
   // The pile of lost dice in the middle of the table.
@@ -456,7 +495,8 @@
   function flyDie(idx, face, g) {
     const wrap = $('#tableWrap');
     const seat = wrap.querySelector(`[data-seat="${idx}"]`);
-    const src = seat && (seat.querySelector('.dice .die.gone') || seat.querySelector('.dice .die:last-child'));
+    const src = seat ? (seat.querySelector('.dice .die.gone') || seat.querySelector('.dice .die:last-child'))
+      : g.players[idx].id === view.you ? $('#hand .dice .die:last-child') : null;
     if (!src) return;
     const wr = wrap.getBoundingClientRect(), sr = src.getBoundingClientRect();
     const sx = sr.left - wr.left, sy = sr.top - wr.top;
@@ -501,9 +541,14 @@
     }</div>`);
   }
 
-  function renderControls(g, me, myIdx) {
+  function renderControls(g, me, myIdx, room, isHost) {
     const c = $('#controls');
     const yourTurn = g.phase === 'bidding' && g.turn === myIdx && me && me.diceCount > 0;
+    if (isCompact() && g.phase !== 'bidding' && g.lastResult) {
+      setHTML(c, `<div class="reveal-actions">${revealFooter(g, room, me, isHost) || '<span class="wait-msg">Next round coming up…</span>'}</div>`);
+      tickCountdowns();
+      return;
+    }
     if (!me || (me.diceCount === 0 && g.phase === 'bidding')) { setHTML(c, ''); return; }
     const total = g.totalDice;
 
@@ -573,6 +618,12 @@
     const items = g.log.map((l) => ({ ts: l.ts, html: `<div class="ev">${esc(l.text)}</div>` }))
       .concat(chat.map((c) => ({ ts: c.ts, html: c.from ? `<div class="msg"><b>${esc(c.from)}:</b> ${esc(c.text)}</div>` : `<div class="sys">${esc(c.text)}</div>` })))
       .sort((a, b) => a.ts - b.ts);
+    const meP = g.players.find((p) => p.id === view.you);
+    const said = chat.filter((c) => c.from && (!meP || c.from !== meP.name)).length;
+    if (ui.chatSeen == null || said < ui.chatSeen || $('#game').classList.contains('log-open')) ui.chatSeen = said;
+    const unread = said - ui.chatSeen;
+    $('#logBadge').hidden = unread <= 0;
+    $('#logBadge').textContent = unread > 9 ? '9+' : unread;
     const atBottom = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 40;
     feed.innerHTML = items.map((i) => i.html).join('');
     if (atBottom) feed.scrollTop = feed.scrollHeight;
@@ -680,6 +731,8 @@
       return;
     }
     switch (t.id) {
+      case 'logBtn': return toggleLog(true);
+      case 'logClose': return toggleLog(false);
       case 'nextBtn': return ctl.next();
       case 'overBtn': return ctl.over();
       case 'againBtn': hideOver(); return ctl.again();
@@ -698,10 +751,15 @@
   });
 
   $('#rulesClose').onclick = () => { $('#rulesModal').hidden = true; };
+  function toggleLog(open) {
+    $('#game').classList.toggle('log-open', open);
+    if (open) { const f = $('#feed'); f.scrollTop = f.scrollHeight; if (view) renderFeed(view.game, view.room); }
+  }
+  $('#drawerBackdrop').onclick = () => toggleLog(false);
   $('#rulesModal').onclick = (e) => { if (e.target.id === 'rulesModal') e.currentTarget.hidden = true; };
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $('#rulesModal').hidden = true; });
 
-  $('#oddsToggle').onchange = (e) => { ui.showOdds = e.target.checked; store.set('ld_odds', ui.showOdds); if (view) renderGame(); };
+  $('#oddsToggle').onchange = $('#oddsToggle2').onchange = (e) => { ui.showOdds = e.target.checked; store.set('ld_odds', ui.showOdds); if (view) renderGame(); };
 
   const nameInput = $('#nameInput');
   nameInput.value = store.get('ld_name') || '';
@@ -764,6 +822,7 @@
   };
 
   window.addEventListener('resize', () => { if (view && ui.screen === 'game') renderGame(); });
+  compactMQ.addEventListener('change', () => { if (view && ui.screen === 'game') renderGame(); });
 
   // ---------- boot ----------
   if ('serviceWorker' in navigator && online) navigator.serviceWorker.register('sw.js').catch(() => {});

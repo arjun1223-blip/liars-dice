@@ -171,6 +171,7 @@
       <div class="tb-mid" id="tbInfo"></div>
       <div class="tb-right">
         <label class="toggle small"><input type="checkbox" id="oddsToggle"> Show odds</label>
+        <button class="btn ghost sm log-btn" id="logBtn" aria-label="Game log and chat">Log<span class="badge" id="logBadge" hidden></span></button>
         <button class="sound-btn" data-sound title="Sound on/off" aria-label="Toggle sound"></button>
         <button class="btn ghost sm" data-rules>Rules</button>
         <button class="btn ghost sm" data-leave>Leave</button>
@@ -199,8 +200,13 @@
           <div class="controls" id="controls"></div>
         </div>
       </main>
+      <div class="drawer-backdrop" id="drawerBackdrop"></div>
       <aside class="side">
-        <h3>Table talk</h3>
+        <div class="side-head"><h3>Table talk</h3><button class="close drawer-close" id="logClose" aria-label="Close">×</button></div>
+        <div class="drawer-tools">
+          <label class="toggle small"><input type="checkbox" id="oddsToggle2"> Show odds</label>
+          <button class="btn ghost sm" data-rules>Rules</button>
+        </div>
         <div class="feed" id="feed"></div>
         <form class="chat" id="chatForm">
           <input id="chatInput" maxlength="200" placeholder="Say something…" autocomplete="off">
