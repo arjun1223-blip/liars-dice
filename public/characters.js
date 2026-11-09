@@ -76,7 +76,8 @@
     p.push(`<circle cx="50" cy="50" r="48" fill="${L.bg}"/>`);
     p.push(`<g clip-path="url(#${id})">`);
     // hair behind
-    if (L.hairStyle === 'long') p.push(`<path d="M24 46 Q20 82 28 100 L72 100 Q80 82 76 46 Z" fill="${L.hair}"/>`);
+    // Starts high on the crown so it always tucks under the hat brim (no gap at the temples).
+    if (L.hairStyle === 'long') p.push(`<path d="M50 24 Q25 24 23.5 46 Q20 82 28 100 L72 100 Q80 82 76.5 46 Q75 24 50 24Z" fill="${L.hair}"/>`);
     if (L.hairStyle === 'wild') {
       [[24, 44, 10], [22, 60, 9], [26, 74, 9], [76, 44, 10], [78, 60, 9], [74, 74, 9], [32, 28, 10], [68, 28, 10], [50, 22, 11]]
         .forEach(([x, y, r]) => p.push(`<circle cx="${x}" cy="${y}" r="${r}" fill="${L.hair}"/>`));

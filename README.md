@@ -41,7 +41,7 @@ Open the link in Safari, tap **Share → Add to Home Screen**. It installs with 
 - **Hard mode:** the number can never go down. Once someone bids 6s, only the quantity can rise.
 - Ones are wild. Nobody may open a round on ones.
 - On "Liar!", count the bid number plus all ones. If the total is equal to or greater than the bid, the challenger loses a die. Otherwise the bidder loses one. The loser opens the next round.
-- **Palafico:** while anyone is down to one die (and more than two players remain), every round is palafico. A one-die player opens it, rotating clockwise among one-die players. Ones may be bid to open and aren't wild, and the number can't change.
+- **Palafico:** while anyone is down to one die (even with only two players left), every round is palafico. A one-die player opens it, rotating clockwise among one-die players. Ones may be bid to open and aren't wild, and the number can't change.
 - In single player, once you're out the rest of the game is resolved instantly and you get the final results.
 
 ## Files

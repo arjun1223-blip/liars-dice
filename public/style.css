@@ -168,7 +168,7 @@ input:focus, select:focus { outline: 2px solid var(--gold); outline-offset: 1px;
 
 /* ---------- lobby ---------- */
 .lobby-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
-.room-code { font-family: var(--display); font-size: clamp(2.8rem, 10vw, 4rem); letter-spacing: .2em; color: var(--gold2); line-height: 1; text-shadow: 0 3px 0 #7a4d12; }
+.room-code { font-family: 'Inter', system-ui, sans-serif; font-weight: 700; font-variant-numeric: tabular-nums; font-size: clamp(2.4rem, 9vw, 3.4rem); letter-spacing: .18em; color: var(--gold2); line-height: 1; text-shadow: 0 3px 0 #7a4d12; }
 .lobby-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .lobby-body { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .player-list { list-style: none; padding: 0; margin: 0 0 12px; display: grid; gap: 6px; }

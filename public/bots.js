@@ -45,6 +45,13 @@
     return Math.min(1, s);
   }
 
+  // Read on opponents: someone who bid a number probably holds a little of it. Shared by the
+  // bots and the odds hint shown to human players, so both judge bids the same way.
+  function bidRead(state, idx, f) {
+    const bidders = new Set((state.bidHistory || []).filter((b) => b.face === f && b.player !== idx).map((b) => b.player));
+    return Math.min(2, Math.round(bidders.size * 0.5));
+  }
+
   function decide(state, idx, rng) {
     rng = rng || Math.random;
     const me = state.players[idx];
@@ -54,11 +61,7 @@
     const pFace = (f) => (wild && f !== 1 ? 1 / 3 : 1 / 6);
     const own = (f) => me.dice.filter((d) => E.matches(d, f, wild)).length;
 
-    // Weak read on opponents: someone bidding a face probably holds a little of it.
-    const hint = (f) => {
-      const bidders = new Set(state.bidHistory.filter((b) => b.face === f && b.player !== idx).map((b) => b.player));
-      return Math.min(2, Math.round(bidders.size * 0.5));
-    };
+    const hint = (f) => bidRead(state, idx, f);
     const probTrue = (q, f) => tail(unknown, pFace(f), q - own(f) - hint(f));
     const faces = [];
     for (let f = 1; f <= 6; f++) if (E.faceAllowed(state, f)) faces.push(f);
@@ -124,14 +127,15 @@
   // Think time so bots feel human.
   const thinkMs = () => 900 + Math.random() * 1400;
 
-  // Odds that a bid is true from one player's point of view (only their dice are known).
+  // Odds that a bid is true from one player's point of view: their own dice, plus the same read
+  // on other players' bids that the bots use.
   function estimate(state, idx, qty, face) {
     const me = state.players[idx];
     if (!me || !me.dice) return null;
     const wild = E.onesWild(state);
     const unknown = E.totalDice(state) - me.dice.length;
     const own = me.dice.filter((d) => E.matches(d, face, wild)).length;
-    return tail(unknown, wild && face !== 1 ? 1 / 3 : 1 / 6, qty - own);
+    return tail(unknown, wild && face !== 1 ? 1 / 3 : 1 / 6, qty - own - bidRead(state, idx, face));
   }
 
   return { decide, estimate, PERSONALITIES, BOT_ROSTER, thinkMs };

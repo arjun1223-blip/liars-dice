@@ -11,7 +11,7 @@
 //  - On "liar", every die showing the bid number plus every one is counted. If the total is equal
 //    to or greater than the bid, the challenger loses a die; otherwise the bidder loses a die.
 //  - The player who lost a die opens the next round. If they are out, the player to their left opens.
-//  - Palafico: while any player is down to one die (and more than two players remain), every round
+//  - Palafico: while any player is down to one die (any number of players, including heads-up), every round
 //    is a palafico round. A one-die player opens it; with several one-die players, the opener moves
 //    clockwise from the previous round's opener to the next one-die player. In a palafico round ones
 //    may be bid to open and are NOT wild, and the number may not change from the opening bid.
@@ -57,9 +57,9 @@
     return die === face || (wild && die === 1 && face !== 1);
   }
 
-  // Palafico is in effect while someone is down to one die and more than two players remain.
+  // Palafico is in effect while someone is down to one die (including two-player endgames).
   function palaficoActive(state) {
-    return aliveCount(state) > 2 && state.players.some((p) => p.diceCount === 1);
+    return aliveCount(state) >= 2 && state.players.some((p) => p.diceCount === 1);
   }
 
   // Everyone rolls one die; highest goes first. Ties re-roll among the tied players.
