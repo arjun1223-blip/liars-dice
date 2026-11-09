@@ -1,0 +1,16 @@
+{
+  "name": "Liar's Dice",
+  "short_name": "Liar's Dice",
+  "description": "A pirate bluffing game. Play the crew solo or join friends in a private room.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#1c120a",
+  "theme_color": "#22150a",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

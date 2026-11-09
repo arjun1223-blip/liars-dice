@@ -1,0 +1,9 @@
+# One-click hosting on Render (render.com): New + → Blueprint → pick this repo.
+services:
+  - type: web
+    name: liars-dice
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /healthz

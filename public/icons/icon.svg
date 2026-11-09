@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="75%"><stop offset="0" stop-color="#7a4a24"/><stop offset=".6" stop-color="#4a2c14"/><stop offset="1" stop-color="#24140a"/></radialGradient>
+    <linearGradient id="die" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fffaf0"/><stop offset=".6" stop-color="#f4ead2"/><stop offset="1" stop-color="#d4bf95"/></linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <g stroke="#000" stroke-opacity=".28" stroke-width="3"><line x1="0" y1="128" x2="512" y2="128"/><line x1="0" y1="256" x2="512" y2="256"/><line x1="0" y1="384" x2="512" y2="384"/></g>
+  <circle cx="256" cy="256" r="236" fill="none" stroke="#e5b453" stroke-width="10"/>
+  <!-- skull & crossbones -->
+  <g transform="translate(256 205) scale(1.05) translate(-100 -100)">
+    <g stroke="#f3ead6" stroke-width="17" stroke-linecap="round"><line x1="38" y1="52" x2="162" y2="168"/><line x1="162" y1="52" x2="38" y2="168"/></g>
+    <g fill="#f3ead6">
+      <circle cx="30" cy="56" r="11"/><circle cx="42" cy="42" r="11"/><circle cx="170" cy="56" r="11"/><circle cx="158" cy="42" r="11"/>
+      <circle cx="30" cy="164" r="11"/><circle cx="42" cy="178" r="11"/><circle cx="170" cy="164" r="11"/><circle cx="158" cy="178" r="11"/>
+      <path d="M100 22 C58 22 42 54 42 84 C42 108 56 119 66 126 L66 146 C66 153 72 158 79 158 L121 158 C128 158 134 153 134 146 L134 126 C144 119 158 108 158 84 C158 54 142 22 100 22Z"/>
+    </g>
+    <g fill="#3a2212"><ellipse cx="78" cy="88" rx="15" ry="17"/><ellipse cx="122" cy="88" rx="15" ry="17"/><path d="M100 106 L91 124 L109 124Z"/>
+      <rect x="83" y="138" width="4" height="20"/><rect x="98" y="138" width="4" height="20"/><rect x="113" y="138" width="4" height="20"/></g>
+  </g>
+  <!-- dice -->
+  <g transform="translate(88 318) rotate(-16)">
+    <rect width="118" height="118" rx="24" fill="url(#die)" stroke="#00000030" stroke-width="3"/>
+    <g fill="#1b1410"><circle cx="30" cy="30" r="11"/><circle cx="88" cy="30" r="11"/><circle cx="59" cy="59" r="11"/><circle cx="30" cy="88" r="11"/><circle cx="88" cy="88" r="11"/></g>
+  </g>
+  <g transform="translate(306 296) rotate(14)">
+    <rect width="118" height="118" rx="24" fill="url(#die)" stroke="#00000030" stroke-width="3"/>
+    <g fill="#1b1410"><circle cx="30" cy="28" r="11"/><circle cx="88" cy="28" r="11"/><circle cx="30" cy="59" r="11"/><circle cx="88" cy="59" r="11"/><circle cx="30" cy="90" r="11"/><circle cx="88" cy="90" r="11"/></g>
+  </g>
+</svg>
