@@ -1,7 +1,7 @@
 # One-click hosting on Render (render.com): New + → Blueprint → pick this repo.
 services:
   - type: web
-    name: liars-dice
+    name: liarsdicegame
     runtime: node
     plan: free
     buildCommand: npm install
