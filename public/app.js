@@ -202,6 +202,7 @@
     action(a) { mode === 'solo' ? solo.action(a) : net.send({ t: 'action', action: a }); },
     next() { mode === 'solo' ? solo.next() : net.send({ t: 'next' }); },
     again() { mode === 'solo' ? solo.again() : net.send({ t: 'lobby' }); },
+    rematch() { net.send({ t: 'rematch' }); },
     over() {
       clearTimeout(ui.overTimer);
       if (mode === 'solo') solo.finish();
@@ -209,7 +210,7 @@
     },
     leave() {
       if (mode === 'solo') goHome();
-      else if (mode === 'online') { if (!view?.room?.inGame || confirm('Leave this game? A bot will take over yer seat.')) net.leave(); }
+      else if (mode === 'online') { if (!view?.room?.inGame || view.game?.phase === 'gameover' || confirm('Leave this game? A bot will take over yer seat.')) net.leave(); }
     },
   };
 
@@ -243,6 +244,7 @@
     ui.prev = cur;
     if (!prev) {
       ui.fx = {}; ui.pilePending = 0; ui.overShown = null;
+      if (g.phase !== 'gameover') hideOver(); // a new game (e.g. a rematch) started
       if (g.phase === 'bidding') { S.roundStart(); if (g.turn === myIdx) yourTurnAlert(1000); }
       return;
     }
@@ -664,8 +666,10 @@
                  <button class="btn" id="changeModeBtn">Change mode</button>
                  <button class="btn ghost" id="menuBtn">Main menu</button>`;
     } else {
-      buttons = (isHost ? '<button class="btn primary big" id="againBtn">Back to lobby</button>' : '<p class="muted">Waiting for the captain…</p>')
-        + '<button class="btn ghost" id="closeOverBtn">View table</button><button class="btn ghost" data-leave>Leave room</button>';
+      buttons = (isHost
+        ? '<button class="btn primary big" id="rematchBtn">Play again with the same people</button><button class="btn big" id="againBtn">Back to lobby</button>'
+        : '<p class="muted">Waiting for the captain to start a rematch or head back to the lobby…</p>')
+        + '<div class="over-minor"><button class="btn ghost sm" id="closeOverBtn">View table</button><button class="btn ghost sm" data-leave>Leave room</button></div>';
     }
     $('#overCard').innerHTML = `
       <svg class="over-skull"><use href="#jolly"/></svg>
@@ -736,6 +740,7 @@
       case 'nextBtn': return ctl.next();
       case 'overBtn': return ctl.over();
       case 'againBtn': hideOver(); return ctl.again();
+      case 'rematchBtn': hideOver(); return ctl.rematch();
       case 'changeModeBtn': hideOver(); return openModes('solo');
       case 'menuBtn': return goHome();
       case 'closeOverBtn': return hideOver();

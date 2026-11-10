@@ -143,8 +143,32 @@ function advance(room) {
   broadcast(room);
 }
 
+// ---------- chat filter ----------
+// Masks swear words (keeps the first letter): "shit" -> "s***". Matches whole
+// words plus common endings, and tolerates repeated letters and simple
+// look-alikes (sh1t, f*ck is already masked), without touching words like
+// "class", "assume" or "Scunthorpe".
+const SWEARS = [
+  'fuck', 'fuk', 'fck', 'motherfuck', 'shit', 'bullshit', 'bitch', 'cunt', 'dick', 'cock', 'pussy',
+  'asshole', 'ass', 'arse', 'bastard', 'damn', 'goddamn', 'crap', 'piss', 'slut', 'whore', 'twat',
+  'wank', 'wanker', 'prick', 'douche', 'jackass', 'dumbass', 'fag', 'faggot', 'nigger', 'nigga',
+  'retard', 'retarded', 'spic', 'chink', 'kike', 'tranny', 'bollocks', 'bugger', 'tits', 'boob',
+];
+const LEET = { a: '[a@4]', e: '[e3]', i: '[i1!]', o: '[o0]', s: '[s$5]', t: '[t7]', g: '[g9]', u: '[uv]' };
+const swearRe = new RegExp(
+  '(?<![\\p{L}\\p{N}])(?:' +
+  SWEARS.sort((a, b) => b.length - a.length)
+    .map((w) => [...w].map((c) => (LEET[c] || c) + '+').join(''))
+    .join('|') +
+  ')(?:s|es|ed|er|ers|ing|in|y|ies|head|heads|face|hole|holes)?(?![\\p{L}\\p{N}])',
+  'giu'
+);
+const censor = (text) => text.replace(swearRe, (w) => w[0] + '*'.repeat(w.length - 1));
+
 function pushChat(room, from, text) {
-  room.chat.push({ ts: Date.now(), from, text: String(text).slice(0, 200) });
+  text = String(text).slice(0, 200);
+  if (from) text = censor(text);
+  room.chat.push({ ts: Date.now(), from, text });
   if (room.chat.length > 60) room.chat.shift();
 }
 
@@ -221,7 +245,17 @@ wss.on('connection', (ws) => {
         if (room.players.length < 2) return fail('Need at least 2 players (add a bot!).');
         room.mode = E.MODES.includes(m.mode) ? m.mode : 'standard';
         room.game = E.createGame(room.players, { mode: room.mode });
-        room.chat = room.chat.slice(-20);
+        room.chat = []; // fresh table talk every game
+        break;
+      case 'rematch':
+        // Same crew, same mode, straight into a new game.
+        if (!isHost(room, me) || !g || g.phase !== 'gameover') return;
+        clearTimers(room);
+        room.players.filter((p) => !p.isBot && !p.connected).forEach((p) => removePlayer(room, p.id));
+        if (!rooms.has(room.code)) return;
+        if (room.players.length < 2) { room.game = null; fail('Not enough players left for a rematch.'); break; }
+        room.game = E.createGame(room.players, { mode: room.mode });
+        room.chat = [];
         break;
       case 'action': {
         if (!g) return;
@@ -258,7 +292,7 @@ wss.on('connection', (ws) => {
     const r = room, p = me;
     room = null; me = null;
     pushChat(r, null, `${p.name} left.`);
-    if (r.game) {
+    if (r.game && r.game.phase !== 'gameover') {
       // Keep their seat in the game; a bot plays it from now on.
       p.connected = false; p.ws = null; p.left = true;
       const gp = r.game.players.find((x) => x.id === p.id);
@@ -269,6 +303,7 @@ wss.on('connection', (ws) => {
       }
       if (!r.players.some((x) => !x.isBot && x.connected)) { clearTimers(r); rooms.delete(r.code); return; }
     } else {
+      // Lobby or a finished game: just free the seat.
       removePlayer(r, p.id);
     }
     if (rooms.has(r.code)) broadcast(r);
